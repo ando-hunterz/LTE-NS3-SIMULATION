@@ -146,13 +146,9 @@ main (int argc, char *argv[])
 {
   uint16_t numberOfUes = 20;
   uint16_t numberOfEnbs = 4;
-  //uint16_t numBearersPerUe = 2;
   double simTime = 15.0;
-  //double distance = 100.0;
+  
 
-  // change some default attributes so that they are reasonable for
-  // this scenario, but do this before processing command line
-  // arguments, so that the user is allowed to override these settings
   Config::SetDefault ("ns3::UdpClient::Interval", TimeValue (MilliSeconds (20)));
   Config::SetDefault ("ns3::UdpClient::MaxPackets", UintegerValue (1000000));
   Config::SetDefault ("ns3::LteEnbRrc::SrsPeriodicity", UintegerValue(320));
@@ -170,12 +166,12 @@ main (int argc, char *argv[])
   Ptr<PointToPointEpcHelper> epcHelper = CreateObject<PointToPointEpcHelper> ();
   lteHelper->SetEpcHelper (epcHelper);
   lteHelper->SetSchedulerType ("ns3::PfFfMacScheduler");
-//   lteHelper->SetHandoverAlgorithmType ("ns3::A3RsrpHandoverAlgorithm"); // disable automatic handover
 
-   lteHelper->SetHandoverAlgorithmType ("ns3::A2A4RsrqHandoverAlgorithm");
-   lteHelper->SetHandoverAlgorithmAttribute ("ServingCellThreshold",
+  // Set handover Algorithm
+  lteHelper->SetHandoverAlgorithmType ("ns3::A2A4RsrqHandoverAlgorithm");
+  lteHelper->SetHandoverAlgorithmAttribute ("ServingCellThreshold",
                                              UintegerValue (30));
-   lteHelper->SetHandoverAlgorithmAttribute ("NeighbourCellOffset",
+  lteHelper->SetHandoverAlgorithmAttribute ("NeighbourCellOffset",
                                              UintegerValue (1));
 
   Ptr<Node> pgw = epcHelper->GetPgwNode ();
@@ -254,11 +250,6 @@ main (int argc, char *argv[])
   ueIpIfaces = epcHelper->AssignUeIpv4Address (NetDeviceContainer (ueLteDevs));
 
 
-  // Attach all UEs to the first eNodeB
-  // for (uint16_t i = 0; i < numberOfUes; i++)
-  //   {
-  //     lteHelper->Attach (ueLteDevs.Get (i), enbLteDevs.Get (0));
-  //   }
 
   lteHelper->AttachToClosestEnb (ueLteDevs, enbLteDevs);
 
@@ -284,8 +275,7 @@ main (int argc, char *argv[])
       Ptr<Ipv4StaticRouting> ueStaticRouting = ipv4RoutingHelper.GetStaticRouting (ue->GetObject<Ipv4> ());
       ueStaticRouting->SetDefaultRoute (epcHelper->GetUeDefaultGatewayAddress (), 1);
 
-      //for (uint32_t b = 0; b < numBearersPerUe; ++b)
-        {
+      
           ++dlPort;
           ++ulPort;
 
@@ -322,7 +312,6 @@ main (int argc, char *argv[])
           serverApps.Start (startTime);
           clientApps.Start (startTime);
 
-        } 
     }
 
 
@@ -337,8 +326,6 @@ main (int argc, char *argv[])
    rlcStats->SetAttribute ("EpochDuration", TimeValue (Seconds (0.02)));
   Ptr<RadioBearerStatsCalculator> pdcpStats = lteHelper->GetPdcpStats ();
   pdcpStats->SetAttribute ("EpochDuration", TimeValue (Seconds (0.02)));
-
-   //pointToPoint.EnablePcapAll ("blabla");
 
 
   // connect custom trace sinks for RRC connection establishment and handover notification
@@ -357,32 +344,31 @@ main (int argc, char *argv[])
 
 
   Simulator::Stop (Seconds (simTime));
-  AnimationInterface anim ("lte2.xml");
-  //anim.EnablePacketMetadata ();
+  AnimationInterface anim ("lte-handover.xml");
   anim.SetMaxPktsPerTraceFile (100000000000);
   anim.SetMobilityPollInterval(Seconds(1));
-  //anim.EnablePacketMetadata(true);
-    std::string fileNameWithNoExtension = "FlowVSThroughput_";
-    std::string graphicsFileName        = fileNameWithNoExtension + ".png";
-    std::string plotFileName            = fileNameWithNoExtension + ".plt";
-    std::string plotTitle               = "Flow vs Throughput";
-    std::string dataTitle               = "Throughput";
 
-    // Instantiate the plot and set its title.
-    Gnuplot gnuplot (graphicsFileName);
-    gnuplot.SetTitle (plotTitle);
+  std::string fileNameWithNoExtension = "FlowVSThroughput_";
+  std::string graphicsFileName        = fileNameWithNoExtension + ".png";
+  std::string plotFileName            = fileNameWithNoExtension + ".plt";
+  std::string plotTitle               = "Flow vs Throughput";
+  std::string dataTitle               = "Throughput";
 
-    // Make the graphics file, which the plot file will be when it
-    // is used with Gnuplot, be a PNG file.
-    gnuplot.SetTerminal ("png");
+  // Instantiate the plot and set its title.
+  Gnuplot gnuplot (graphicsFileName);
+  gnuplot.SetTitle (plotTitle);
 
-    // Set the labels for each axis.
-    gnuplot.SetLegend ("Flow", "Throughput");
+  // Make the graphics file, which the plot file will be when it
+  // is used with Gnuplot, be a PNG file.
+  gnuplot.SetTerminal ("png");
 
-     
-   Gnuplot2dDataset dataset;
-   dataset.SetTitle (dataTitle);
-   dataset.SetStyle (Gnuplot2dDataset::LINES_POINTS);
+  // Set the labels for each axis.
+  gnuplot.SetLegend ("Flow", "Throughput");
+
+    
+  Gnuplot2dDataset dataset;
+  dataset.SetTitle (dataTitle);
+  dataset.SetStyle (Gnuplot2dDataset::LINES_POINTS);
 
   //flowMonitor declaration
   FlowMonitorHelper fmHelper;
@@ -392,18 +378,6 @@ main (int argc, char *argv[])
   ThroughputMonitor(&fmHelper, allMon, dataset); 
 
   Simulator::Run ();
-
-  //Gnuplot ...continued
-  gnuplot.AddDataset (dataset);
-  // Open the plot file.
-  std::ofstream plotFile (plotFileName.c_str());
-  // Write the plot file.
-  gnuplot.GenerateOutput (plotFile);
-  // Close the plot file.
-  plotFile.close ();
-
-  // GtkConfigStore config;
-  // config.ConfigureAttributes ();
 
   Simulator::Destroy ();
   return 0;
